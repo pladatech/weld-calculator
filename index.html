@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>מחשבון כמות חומר רתך</title>
+    
+    <!-- ספריות חיצוניות דרך CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone@7.23.6/babel.min.js"></script>
+    
+    <style>
+        body { 
+            font-family: system-ui, -apple-system, sans-serif; 
+            background-color: #09090b; /* zinc-950 */
+            color: #f4f4f5; /* zinc-50 */
+        }
+        /* עיצוב פס גלילה מותאם אישית (אופציונלי) */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #18181b; }
+        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #eab308; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel" data-type="module">
+        const { useState, useMemo, useEffect } = React;
+
+        const MATERIALS = {
+            steel: { name: 'פלדה (Carbon Steel)', density: 7.85 },
+            aluminum: { name: 'אלומיניום (Aluminum)', density: 2.70 },
+            stainless: { name: 'נירוסטה (Stainless Steel)', density: 7.90 }
+        };
+
+        const PROCESSES = {
+            smaw: { name: 'אלקטרודה (SMAW)' },
+            gmaw: { name: 'מיג (GMAW)' },
+            fcaw: { name: 'חוט ממולא (FCAW)' },
+            gtaw: { name: 'טיג (GTAW)' }
+        };
+
+        const FILLER_TYPES = {
+            smaw: [
+                { id: '6010', name: 'E6010 / E6011', efficiency: 0.55 },
+                { id: '7018', name: 'E7018', efficiency: 0.65 },
+                { id: '7024', name: 'E7024', efficiency: 0.70 }
+            ],
+            gmaw: [
+                { id: 'er70s', name: 'חוט מלא ER70S', efficiency: 0.95 },
+                { id: 'alum', name: 'חוט אלומיניום', efficiency: 0.90 }
+            ],
+            fcaw: [
+                { id: 'rutile', name: 'חוט ממולא רוטיל', efficiency: 0.85 },
+                { id: 'metal', name: 'חוט ממולא מתכת', efficiency: 0.90 }
+            ],
+            gtaw: [
+                { id: 'rod', name: 'מוט טיג', efficiency: 0.98 }
+            ]
+        };
+
+        const DIAMETERS = {
+            smaw: [2.0, 2.5, 3.2, 4.0, 5.0],
+            gmaw: [0.6, 0.8, 1.0, 1.2, 1.6],
+            fcaw: [1.0, 1.2, 1.4, 1.6, 2.0],
+            gtaw: [1.6, 2.0, 2.4, 3.2, 4.0]
+        };
+
+        const JOINT_TYPES = {
+            fillet: { name: 'ריתוך פינה (Fillet)' },
+            v_groove: { name: 'פאזה V (V-Groove)' }
+        };
+
+        function App() {
+            const [material, setMaterial] = useState('steel');
+            const [process, setProcess] = useState('smaw');
+            const [fillerType, setFillerType] = useState(FILLER_TYPES.smaw[0].id);
+            const [diameter, setDiameter] = useState(DIAMETERS.smaw[2]);
+            const [jointType, setJointType] = useState('fillet');
+            
+            const [length, setLength] = useState(1);
+            const [weldSize, setWeldSize] = useState(5);
+            const [rootGap, setRootGap] = useState(2);
+            const [bevelAngle, setBevelAngle] = useState(60);
+            const [packageWeight, setPackageWeight] = useState(5);
+
+            useEffect(() => {
+                setFillerType(FILLER_TYPES[process][0].id);
+                setDiameter(DIAMETERS[process][Math.floor(DIAMETERS[process].length / 2)]);
+                setPackageWeight(process === 'smaw' || process === 'gtaw' ? 5 : 15);
+            }, [process]);
+
+            const crossSectionArea = useMemo(() => {
+                const size = parseFloat(weldSize) || 0;
+                if (jointType === 'fillet') {
+                    return (0.5 * size * size) * 1.1; 
+                } 
+                if (jointType === 'v_groove') {
+                    const gap = parseFloat(rootGap) || 0;
+                    const angle = parseFloat(bevelAngle) || 0;
+                    const rootArea = gap * size;
+                    const angleRad = (angle / 2) * (Math.PI / 180);
+                    const grooveArea = Math.pow(size, 2) * Math.tan(angleRad);
+                    return (rootArea + grooveArea) * 1.1;
+                }
+                return 0;
+            }, [jointType, weldSize, rootGap, bevelAngle]);
+
+            const calculationResult = useMemo(() => {
+                const lenMeters = parseFloat(length) || 0;
+                const density = MATERIALS[material].density;
+                const currentFiller = FILLER_TYPES[process].find(f => f.id === fillerType) || FILLER_TYPES[process][0];
+                const efficiency = currentFiller.efficiency;
+
+                if (crossSectionArea === 0 || lenMeters === 0) return { weldMetal: 0, requiredFiller: 0, efficiency: efficiency * 100, packagesNeeded: 0, packWeightUsed: 0 };
+
+                const theoreticalWeight = (crossSectionArea * lenMeters * density) / 1000;
+                const requiredWeight = theoreticalWeight / efficiency;
+                
+                const packWeight = parseFloat(packageWeight) || 1;
+                const packages = Math.ceil(requiredWeight / packWeight);
+
+                return {
+                    weldMetal: theoreticalWeight.toFixed(2),
+                    requiredFiller: requiredWeight.toFixed(2),
+                    efficiency: (efficiency * 100).toFixed(0),
+                    packagesNeeded: packages,
+                    packWeightUsed: packWeight
+                };
+            }, [crossSectionArea, length, material, process, fillerType, packageWeight]);
+
+            const renderVisualAid = () => {
+                if (jointType === 'fillet') {
+                    const throatSize = (parseFloat(weldSize) * 0.7071).toFixed(1);
+                    return (
+                        <div className="flex flex-col gap-2">
+                            <svg viewBox="0 0 200 120" className="w-full h-32 bg-black rounded border border-zinc-700" style={{fontFamily: 'monospace'}}>
+                                <defs>
+                                    <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                                        <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#111" strokeWidth="1"/>
+                                    </pattern>
+                                </defs>
+                                <rect width="100%" height="100%" fill="url(#grid)" />
+                                {/* פלטות */}
+                                <path d="M 60 10 L 80 10 L 80 90 L 170 90 L 170 110 L 60 110 Z" fill="#111" stroke="#00FFFF" strokeWidth="1" />
+                                {/* ריתוך */}
+                                <path d="M 80 40 Q 110 65 130 90 L 80 90 Z" fill="#FFFF00" fillOpacity="0.2" stroke="#FFFF00" strokeWidth="1" />
+                                
+                                {/* קווי מידה */}
+                                <line x1="75" y1="40" x2="55" y2="40" stroke="#00FF00" strokeWidth="0.5" />
+                                <line x1="75" y1="90" x2="55" y2="90" stroke="#00FF00" strokeWidth="0.5" />
+                                <line x1="65" y1="40" x2="65" y2="90" stroke="#00FF00" strokeWidth="1" />
+                                <polygon points="65,40 63,45 67,45" fill="#00FF00" />
+                                <polygon points="65,90 63,85 67,85" fill="#00FF00" />
+                                <text x="15" y="68" fontSize="10" fill="#00FF00">a={weldSize}</text>
+                            </svg>
+                            <div className="bg-black border border-zinc-700 rounded p-2 flex justify-between items-center text-xs">
+                                <span className="text-zinc-400">צוואר ריתוך (Throat - th):</span>
+                                <span className="text-[#FF00FF] font-mono font-bold">{throatSize} מ"מ</span>
+                            </div>
+                        </div>
+                    );
+                }
+                if (jointType === 'v_groove') {
+                    return (
+                        <svg viewBox="0 0 200 120" className="w-full h-32 bg-black rounded border border-zinc-700" style={{fontFamily: 'monospace'}}>
+                            <defs>
+                                <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
+                                    <path d="M 10 0 L 0 0 0 10" fill="none" stroke="#111" strokeWidth="1"/>
+                                </pattern>
+                            </defs>
+                            <rect width="100%" height="100%" fill="url(#grid)" />
+                            {/* פלטות */}
+                            <path d="M 10 30 L 60 30 L 90 90 L 10 90 Z" fill="#111" stroke="#00FFFF" strokeWidth="1" />
+                            <path d="M 190 30 L 140 30 L 110 90 L 190 90 Z" fill="#111" stroke="#00FFFF" strokeWidth="1" />
+                            {/* ריתוך */}
+                            <path d="M 58 30 Q 100 15 142 30 L 110 90 L 90 90 Z" fill="#FFFF00" fillOpacity="0.2" stroke="#FFFF00" strokeWidth="1" />
+                            
+                            {/* מידת שורש */}
+                            <line x1="90" y1="95" x2="90" y2="110" stroke="#00FF00" strokeWidth="0.5" />
+                            <line x1="110" y1="95" x2="110" y2="110" stroke="#00FF00" strokeWidth="0.5" />
+                            <line x1="90" y1="105" x2="110" y2="105" stroke="#00FF00" strokeWidth="1" />
+                            <polygon points="90,105 95,103 95,107" fill="#00FF00" />
+                            <polygon points="110,105 105,103 105,107" fill="#00FF00" />
+                            <text x="85" y="118" fontSize="10" fill="#00FF00">g={rootGap}</text>
+                            
+                            {/* מידת זווית */}
+                            <path d="M 68 20 A 40 40 0 0 1 132 20" fill="none" stroke="#00FF00" strokeWidth="1"/>
+                            <polygon points="68,20 73,18 70,24" fill="#00FF00" />
+                            <polygon points="132,20 127,18 130,24" fill="#00FF00" />
+                            <text x="92" y="12" fontSize="10" fill="#00FF00">{bevelAngle}°</text>
+                            
+                            {/* מידת עובי */}
+                            <line x1="5" y1="30" x2="25" y2="30" stroke="#00FF00" strokeWidth="0.5" />
+                            <line x1="5" y1="90" x2="25" y2="90" stroke="#00FF00" strokeWidth="0.5" />
+                            <line x1="15" y1="30" x2="15" y2="90" stroke="#00FF00" strokeWidth="1" />
+                            <polygon points="15,30 13,35 17,35" fill="#00FF00" />
+                            <polygon points="15,90 13,85 17,85" fill="#00FF00" />
+                            <text x="20" y="65" fontSize="10" fill="#00FF00">t={weldSize}</text>
+                        </svg>
+                    );
+                }
+            };
+
+            const inputClass = "w-full bg-zinc-800 border border-zinc-700 rounded p-1.5 text-zinc-100 focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 outline-none transition-colors";
+            const labelClass = "block text-xs font-medium text-zinc-400 mb-1";
+
+            return (
+                <div className="max-w-4xl mx-auto mt-8 mb-8 bg-zinc-900 rounded-lg shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-zinc-800 overflow-hidden text-sm">
+                    {/* כותרת עליונה */}
+                    <div className="bg-black text-yellow-500 p-4 border-b border-yellow-500/30 flex items-center justify-between">
+                        <div>
+                            <h1 className="text-xl font-bold tracking-wide">מחשבון חומר רתך</h1>
+                            <p className="text-zinc-500 text-xs mt-1">נוצר על ידי צוות פלדעטק</p>
+                        </div>
+                        <div className="w-8 h-8 rounded-full bg-yellow-500/10 flex items-center justify-center border border-yellow-500/20">
+                            <svg className="w-4 h-4 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        </div>
+                    </div>
+
+                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+                        {/* עמודה ימנית: נתונים */}
+                        <div className="space-y-4">
+                            <div className="bg-zinc-800/50 p-4 rounded border border-zinc-800">
+                                <h2 className="font-semibold text-yellow-500 border-b border-zinc-700 pb-2 mb-3">תכונות חומר ותהליך</h2>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className={labelClass}>חומר אם</label>
+                                        <select value={material} onChange={(e) => setMaterial(e.target.value)} className={inputClass}>
+                                            {Object.entries(MATERIALS).map(([key, data]) => <option key={key} value={key}>{data.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>תהליך</label>
+                                        <select value={process} onChange={(e) => setProcess(e.target.value)} className={inputClass}>
+                                            {Object.entries(PROCESSES).map(([key, data]) => <option key={key} value={key}>{data.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>חומר רתך</label>
+                                        <select value={fillerType} onChange={(e) => setFillerType(e.target.value)} className={inputClass}>
+                                            {FILLER_TYPES[process].map((filler) => <option key={filler.id} value={filler.id}>{filler.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>עובי (מ"מ)</label>
+                                        <select value={diameter} onChange={(e) => setDiameter(e.target.value)} className={inputClass}>
+                                            {DIAMETERS[process].map((dia) => <option key={dia} value={dia}>{dia.toFixed(1)}</option>)}
+                                        </select>
+                                    </div>
+                                    <div className="col-span-2 mt-2 pt-2 border-t border-zinc-700/50">
+                                        <label className={labelClass}>משקל מארז להזמנה (ק"ג)</label>
+                                        <input type="number" min="0.1" step="0.1" value={packageWeight} onChange={(e) => setPackageWeight(e.target.value)} className={inputClass}/>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="bg-zinc-800/50 p-4 rounded border border-zinc-800">
+                                <h2 className="font-semibold text-yellow-500 border-b border-zinc-700 pb-2 mb-3">מידות התפר</h2>
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div>
+                                        <label className={labelClass}>סוג חיבור</label>
+                                        <select value={jointType} onChange={(e) => setJointType(e.target.value)} className={inputClass}>
+                                            {Object.entries(JOINT_TYPES).map(([key, data]) => <option key={key} value={key}>{data.name}</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className={labelClass}>אורך ריתוך (מטר)</label>
+                                        <input type="number" min="0" step="0.1" value={length} onChange={(e) => setLength(e.target.value)} className={inputClass}/>
+                                    </div>
+                                    {jointType === 'fillet' ? (
+                                        <div className="col-span-2">
+                                            <label className={labelClass}>מידת ניצב - Leg Size (מ"מ)</label>
+                                            <input type="number" min="0" step="0.5" value={weldSize} onChange={(e) => setWeldSize(e.target.value)} className={inputClass}/>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="col-span-2">
+                                                <label className={labelClass}>עובי החומר (מ"מ)</label>
+                                                <input type="number" min="0" step="0.5" value={weldSize} onChange={(e) => setWeldSize(e.target.value)} className={inputClass}/>
+                                            </div>
+                                            <div>
+                                                <label className={labelClass}>מרווח שורש (מ"מ)</label>
+                                                <input type="number" min="0" step="0.5" value={rootGap} onChange={(e) => setRootGap(e.target.value)} className={inputClass}/>
+                                            </div>
+                                            <div>
+                                                <label className={labelClass}>זווית כוללת (מעלות)</label>
+                                                <input type="number" min="0" step="1" value={bevelAngle} onChange={(e) => setBevelAngle(e.target.value)} className={inputClass}/>
+                                            </div>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* עמודה שמאלית: ויזואליזציה ותוצאות */}
+                        <div className="space-y-4 h-full flex flex-col">
+                            <div className="bg-zinc-800/50 p-4 rounded border border-zinc-800">
+                                <h2 className="font-semibold text-yellow-500 border-b border-zinc-700 pb-2 mb-3">המחשה ויזואלית (חתך)</h2>
+                                {renderVisualAid()}
+                            </div>
+
+                            <div className="bg-zinc-900 p-4 rounded border border-yellow-500/20 flex flex-col justify-center text-center relative overflow-hidden">
+                                {/* עיצוב רקע זוהר עדין */}
+                                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                                
+                                <h2 className="text-base font-bold text-yellow-500 border-b border-zinc-800 pb-1 mb-3 relative z-10">תוצאות חישוב</h2>
+                                
+                                <div className="relative z-10 mb-3">
+                                    <span className="block text-zinc-400 text-xs font-medium mb-1">חומר רתך נדרש (ברוטו)</span>
+                                    <span className="text-3xl font-black text-yellow-400 drop-shadow-md">{calculationResult.requiredFiller} ק"ג</span>
+                                </div>
+                                
+                                <div className="relative z-10 grid grid-cols-2 gap-2 border-t border-zinc-800 pt-3">
+                                    <div>
+                                        <span className="block text-zinc-400 text-[10px] font-medium mb-0.5">יעילות תהליך</span>
+                                        <span className="text-lg font-bold text-zinc-200">{calculationResult.efficiency}%</span>
+                                    </div>
+                                    <div>
+                                        <span className="block text-zinc-400 text-[10px] font-medium mb-0.5">מארזים ({calculationResult.packWeightUsed} ק"ג)</span>
+                                        <span className="text-lg font-bold text-zinc-200">{calculationResult.packagesNeeded}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
