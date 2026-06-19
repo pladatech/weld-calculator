@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <meta name="theme-color" content="#09090b">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="ICON.PNG">
+    
     <title>מחשבון כמות חומר רתך</title>
     
-    <!-- ספריות חיצוניות דרך CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -14,10 +18,9 @@
     <style>
         body { 
             font-family: system-ui, -apple-system, sans-serif; 
-            background-color: #09090b; /* zinc-950 */
-            color: #f4f4f5; /* zinc-50 */
+            background-color: #09090b; 
+            color: #f4f4f5; 
         }
-        /* עיצוב פס גלילה מותאם אישית (אופציונלי) */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #18181b; }
         ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 4px; }
@@ -144,12 +147,8 @@
                                     </pattern>
                                 </defs>
                                 <rect width="100%" height="100%" fill="url(#grid)" />
-                                {/* פלטות */}
                                 <path d="M 60 10 L 80 10 L 80 90 L 170 90 L 170 110 L 60 110 Z" fill="#111" stroke="#00FFFF" strokeWidth="1" />
-                                {/* ריתוך */}
                                 <path d="M 80 40 Q 110 65 130 90 L 80 90 Z" fill="#FFFF00" fillOpacity="0.2" stroke="#FFFF00" strokeWidth="1" />
-                                
-                                {/* קווי מידה */}
                                 <line x1="75" y1="40" x2="55" y2="40" stroke="#00FF00" strokeWidth="0.5" />
                                 <line x1="75" y1="90" x2="55" y2="90" stroke="#00FF00" strokeWidth="0.5" />
                                 <line x1="65" y1="40" x2="65" y2="90" stroke="#00FF00" strokeWidth="1" />
@@ -173,27 +172,19 @@
                                 </pattern>
                             </defs>
                             <rect width="100%" height="100%" fill="url(#grid)" />
-                            {/* פלטות */}
                             <path d="M 10 30 L 60 30 L 90 90 L 10 90 Z" fill="#111" stroke="#00FFFF" strokeWidth="1" />
                             <path d="M 190 30 L 140 30 L 110 90 L 190 90 Z" fill="#111" stroke="#00FFFF" strokeWidth="1" />
-                            {/* ריתוך */}
                             <path d="M 58 30 Q 100 15 142 30 L 110 90 L 90 90 Z" fill="#FFFF00" fillOpacity="0.2" stroke="#FFFF00" strokeWidth="1" />
-                            
-                            {/* מידת שורש */}
                             <line x1="90" y1="95" x2="90" y2="110" stroke="#00FF00" strokeWidth="0.5" />
                             <line x1="110" y1="95" x2="110" y2="110" stroke="#00FF00" strokeWidth="0.5" />
                             <line x1="90" y1="105" x2="110" y2="105" stroke="#00FF00" strokeWidth="1" />
                             <polygon points="90,105 95,103 95,107" fill="#00FF00" />
                             <polygon points="110,105 105,103 105,107" fill="#00FF00" />
                             <text x="85" y="118" fontSize="10" fill="#00FF00">g={rootGap}</text>
-                            
-                            {/* מידת זווית */}
                             <path d="M 68 20 A 40 40 0 0 1 132 20" fill="none" stroke="#00FF00" strokeWidth="1"/>
                             <polygon points="68,20 73,18 70,24" fill="#00FF00" />
                             <polygon points="132,20 127,18 130,24" fill="#00FF00" />
                             <text x="92" y="12" fontSize="10" fill="#00FF00">{bevelAngle}°</text>
-                            
-                            {/* מידת עובי */}
                             <line x1="5" y1="30" x2="25" y2="30" stroke="#00FF00" strokeWidth="0.5" />
                             <line x1="5" y1="90" x2="25" y2="90" stroke="#00FF00" strokeWidth="0.5" />
                             <line x1="15" y1="30" x2="15" y2="90" stroke="#00FF00" strokeWidth="1" />
@@ -210,7 +201,6 @@
 
             return (
                 <div className="max-w-4xl mx-auto mt-8 mb-8 bg-zinc-900 rounded-lg shadow-[0_0_20px_rgba(0,0,0,0.5)] border border-zinc-800 overflow-hidden text-sm">
-                    {/* כותרת עליונה */}
                     <div className="bg-black text-yellow-500 p-4 border-b border-yellow-500/30 flex items-center justify-between">
                         <div>
                             <h1 className="text-xl font-bold tracking-wide">מחשבון חומר רתך</h1>
@@ -222,7 +212,6 @@
                     </div>
 
                     <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
-                        {/* עמודה ימנית: נתונים */}
                         <div className="space-y-4">
                             <div className="bg-zinc-800/50 p-4 rounded border border-zinc-800">
                                 <h2 className="font-semibold text-yellow-500 border-b border-zinc-700 pb-2 mb-3">תכונות חומר ותהליך</h2>
@@ -296,7 +285,6 @@
                             </div>
                         </div>
 
-                        {/* עמודה שמאלית: ויזואליזציה ותוצאות */}
                         <div className="space-y-4 h-full flex flex-col">
                             <div className="bg-zinc-800/50 p-4 rounded border border-zinc-800">
                                 <h2 className="font-semibold text-yellow-500 border-b border-zinc-700 pb-2 mb-3">המחשה ויזואלית (חתך)</h2>
@@ -304,11 +292,13 @@
                             </div>
 
                             <div className="bg-zinc-900 p-4 rounded border border-yellow-500/20 flex flex-col justify-center text-center relative overflow-hidden">
-                                {/* עיצוב רקע זוהר עדין */}
                                 <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-32 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none"></div>
                                 
                                 <h2 className="text-base font-bold text-yellow-500 border-b border-zinc-800 pb-1 mb-3 relative z-10">תוצאות חישוב</h2>
                                 
+                                {/* תמונת האייקון המשולבת בממשק */}
+                                <img src="./ICON.PNG" alt="אייקון פלדעטק" className="w-20 h-20 mx-auto rounded-lg border border-zinc-700 mb-4 relative z-10" />
+
                                 <div className="relative z-10 mb-3">
                                     <span className="block text-zinc-400 text-xs font-medium mb-1">חומר רתך נדרש (ברוטו)</span>
                                     <span className="text-3xl font-black text-yellow-400 drop-shadow-md">{calculationResult.requiredFiller} ק"ג</span>
@@ -333,6 +323,20 @@
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
+    </script>
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                .then(registration => {
+                    console.log('ServiceWorker registered with scope:', registration.scope);
+                })
+                .catch(error => {
+                    console.error('ServiceWorker registration failed:', error);
+                });
+            });
+        }
     </script>
 </body>
 </html>
